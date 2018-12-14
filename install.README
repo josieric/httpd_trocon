@@ -1,0 +1,13 @@
+
+# Debian / Ubuntu
+#apt-get -y install libfile-mimeinfo-perl libio-socket-ssl-perl libauthen-pam-perl libdigest-sha-perl
+# Centos/RedHat
+#yum -y install perl-File-MimeInfo perl-IO-Socket-SSL perl-Authen-PAM perl-Digest-SHA
+
+cd /opt/stat/
+cp httpd_trocon.service /lib/systemd/system/
+ln -s /lib/systemd/system/httpd_trocon.service /etc/systemd/system/multi-user.target.wants/.
+systemctl daemon-reload
+systemctl enable httpd_trocon
+systemctl start httpd_trocon
+

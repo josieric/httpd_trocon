@@ -1,0 +1,12 @@
+[Unit]
+Description=httpd simple trocon
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/opt/stat/httpd_trocon.pl start
+ExecStop=/opt/stat/httpd_trocon.pl stop
+
+[Install]
+WantedBy=multi-user.target
+
