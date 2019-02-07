@@ -18,6 +18,67 @@ $html_footer="</body></html>$nl";
 #$cache_maxage=3600;
 $cache_maxage=0;
 
+
+############################
+## Start jupyter
+############################
+use Cwd;
+sub HTTPD_jupyter_start {
+  my $s = shift;
+  my $infos = shift;
+  my $header =  shift;
+
+  my $host_elected = `hostname -f`; chomp($host_elected);
+  my $MIDIR =  getcwd;
+  my $CONDAPATH="/opt/edfconda3/bin";
+  my $startcmd = "cd ~ ; PATH=$CONDAPATH:\$PATH jupyter notebook --no-browser --ip=$host_elected --certfile $MIDIR/server.crt --keyfile $MIDIR/server.key 2>&1 | tee $MIDIR/session/jupyter".$infos->{'PARAMETER'}->{'REMOTE_USER'};
+
+  mkdir("session") if (! -d "session");
+
+  if( ! -f "./session/jupyter".$infos->{'PARAMETER'}->{'REMOTE_USER'} ) {
+    my $pid=fork();
+    if (! (defined $pid && $pid == 0)) {
+      ## Ici le pere !!
+      while( ! -f "./session/jupyter".$infos->{'PARAMETER'}->{'REMOTE_USER'} ) {
+        sleep 2;
+      }
+    }
+    else {
+      ## Ici le fils
+      my $start = `$startcmd`;
+      unlink("./session/jupyter".$infos->{'PARAMETER'}->{'REMOTE_USER'});
+      exit;
+    }
+  }
+
+  my $fh;
+  my $res="";
+  my $jupyter_url;
+  open($fh,"<",$MIDIR."/session/jupyter".$infos->{"PARAMETER"}->{"REMOTE_USER"});
+  while(<$fh>) {
+    if ($_ =~ /^\s*(https:\/\/.*)$/) {
+      $jupyter_url = $1;
+    }
+    $res.=$_."<br>";
+  }
+  close($fh);
+  if (defined $jupyter_url) {
+    print $s get_header($infos,$header).$html_header."<a href=\"".$jupyter_url."\">".$jupyter_url."</a><br><a href=\"/jupyter_stop\">STOP jupyter</a>".$html_footer;
+  }
+  else {
+    print $s get_header($infos,$header).$html_header;
+    print $s "<body><h3>Hello world</h3>$startcmd<br>$res<br><b>Reload the page (F5)</b><br>$html_footer";
+  }
+}
+sub HTTPD_jupyter_stop {
+  my $s = shift;
+  my $infos = shift;
+  my $header =  shift;
+  print $s get_header($infos,$header).$html_header;
+  my $res=`pkill jupyter 2>&1 | sed -e \"s/\$/<br>/\"`;
+  print $s "Fin".$html_footer;
+}
+
 ############################
 ## Service authent
 ############################
